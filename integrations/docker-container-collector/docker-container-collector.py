@@ -30,9 +30,10 @@ SAVE_FILE_HASHES = config['SAVE_FILE_HASHES']
 HASH_FILE = config['HASH_FILE']
 ONLY_SCAN_NEW_FILES = config['ONLY_SCAN_NEW_FILES']
 MAX_FILE_SIZE = config['MAX_FILE_SIZE'] # in bytes, 0 means no limit
+SCAN_FILES_SEPARATELY = config['SCAN_FILES_SEPARATELY']
 FULL_DIFF = []
 FILTERED_DIFF = []
-SCAN_RESULTS = {}
+SCAN_RESULTS = []
 
 # logging configuration
 logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')
@@ -53,6 +54,7 @@ def read_arguments():
     global SAVE_FILE_HASHES
     global ONLY_SCAN_NEW_FILES
     global MAX_FILE_SIZE
+    global SCAN_FILES_SEPARATELY
     parser = argparse.ArgumentParser(description='Scan Docker container diffs with Thunderstorm.')
     parser.add_argument('-t', '--thunderstorm-host', type=str, default=THUNDERSTORM_HOST, help='Thunderstorm host address')
     parser.add_argument('-p', '--thunderstorm-port', type=int, default=THUNDERSTORM_PORT, help='Thunderstorm port number')
@@ -63,6 +65,7 @@ def read_arguments():
     parser.add_argument('--save-file-hashes', action='store_true', default=SAVE_FILE_HASHES, help='Save scanned file hashes to avoid re-scanning')
     parser.add_argument('--only-scan-new-files', action='store_true', default=ONLY_SCAN_NEW_FILES, help='Only scan files that have not been scanned before')
     parser.add_argument('--max-file-size', type=int, default=MAX_FILE_SIZE, help='Maximum file size to scan in bytes (0 means no limit)')
+    parser.add_argument('--scan-files-separately', action='store_true', default=SCAN_FILES_SEPARATELY, help='Scan files separately instead of in batch')
     args = parser.parse_args()
     if args.thunderstorm_host:
         THUNDERSTORM_HOST = args.thunderstorm_host
@@ -82,7 +85,9 @@ def read_arguments():
         ONLY_SCAN_NEW_FILES = args.only_scan_new_files
     if args.max_file_size is not None:
         MAX_FILE_SIZE = args.max_file_size
-    logger.info(f"Configuration - Thunderstorm Host: {THUNDERSTORM_HOST}, Port: {THUNDERSTORM_PORT}, Changed Files Directory: {GLOBAL_CHANGED_FILES_DIRECTORY}, Scan Results Directory: {SCAN_RESULTS_DIRECTORY}, Log File: {LOGFILE}, Save File Hashes: {SAVE_FILE_HASHES}, Only Scan New Files: {ONLY_SCAN_NEW_FILES}, Max File Size: {MAX_FILE_SIZE} bytes")
+    if args.scan_files_separately is not None:
+        SCAN_FILES_SEPARATELY = args.scan_files_separately
+    logger.info(f"Configuration - Thunderstorm Host: {THUNDERSTORM_HOST}, Port: {THUNDERSTORM_PORT}, Changed Files Directory: {GLOBAL_CHANGED_FILES_DIRECTORY}, Scan Results Directory: {SCAN_RESULTS_DIRECTORY}, Log File: {LOGFILE}, Save File Hashes: {SAVE_FILE_HASHES}, Only Scan New Files: {ONLY_SCAN_NEW_FILES}, Max File Size: {MAX_FILE_SIZE} bytes, Scan Files Separately: {SCAN_FILES_SEPARATELY}")
 
 def is_instance_running(lockfile=LOCKFILE):
     fp = open(lockfile, "w")
@@ -146,7 +151,8 @@ def copy_file_from_container(item):
     if not os.path.exists(DIFF_DIRECTORY):
         os.makedirs(DIFF_DIRECTORY)
     try:
-        copy = subprocess.run(['docker', 'cp', file, f"{DIFF_DIRECTORY}/{file.replace(':', '').replace('/', '_')}"], capture_output=True)
+        file_path_in_diff_directory = get_file_path_in_diff_directory(item['container_id'], item['file_path'])
+        copy = subprocess.run(['docker', 'cp', file, file_path_in_diff_directory], capture_output=True)
         if copy.returncode == 0:
             logger.info(f"Copied file {item['file_path']} from container {item['container_id']} successfully.")
         else:
@@ -165,8 +171,8 @@ def skip_duplicates():
     global FILTERED_DIFF
     unique_items = {}
     for item in FILTERED_DIFF:
-        file_path = f"{DIFF_DIRECTORY}/{item['container_id']}{item['file_path'].replace('/', '_')}"
-        file_hash = hashlib.sha256(open(file_path, 'rb').read()).hexdigest()
+        file_path_in_diff_directory = get_file_path_in_diff_directory(item['container_id'], item['file_path'])
+        file_hash = hashlib.sha256(open(file_path_in_diff_directory, 'rb').read()).hexdigest()
         if file_hash not in unique_items:
             unique_items[file_hash] = item
             logger.debug(f"Adding unique file {item['file_path']} with hash {file_hash} from container {item['container_id']}.")
@@ -183,20 +189,31 @@ def scan_files():
     global SCAN_RESULTS
     global FILTERED_DIFF
     file_hashes = []
-    if ONLY_SCAN_NEW_FILES and os.path.exists(HASH_FILE):
-        skip_known_files()
-    if MAX_FILE_SIZE > 0:
-        skip_big_files()
-    for item in FILTERED_DIFF:
-        THUNDERSTORM = ThunderstormAPI(host=THUNDERSTORM_HOST, port=THUNDERSTORM_PORT, source=item['container_id'])
-        file = f"{item['container_id']}{item['file_path'].replace('/', '_')}"
-        try:
-            scan_result = THUNDERSTORM.scan(os.path.join(DIFF_DIRECTORY, file))
-            SCAN_RESULTS[file] = scan_result
+    if SCAN_FILES_SEPARATELY:
+        for item in FILTERED_DIFF:
+            THUNDERSTORM = ThunderstormAPI(host=THUNDERSTORM_HOST, port=THUNDERSTORM_PORT, source=item['container_id'])
+            file_path_in_diff_directory = get_file_path_in_diff_directory(item['container_id'], item['file_path'])
+            try:
+                scan_results = THUNDERSTORM.scan(file_path_in_diff_directory)
+                SCAN_RESULTS.append({'hash': item['sha256'], 'date': DATE, 'scan_results': scan_results})
+                file_hashes.append(item['sha256'])
+                logger.info(f"Scanned file {file_path_in_diff_directory}.")
+            except Exception as e:
+                logger.error(f"Error scanning file {file_path_in_diff_directory}. Check if Thunderstorm is running properly. Error: {e}")
+    else:
+        THUNDERSTORM = ThunderstormAPI(host=THUNDERSTORM_HOST, port=THUNDERSTORM_PORT)
+        files_to_scan = []
+        for item in FILTERED_DIFF:
+            file_path_in_diff_directory = get_file_path_in_diff_directory(item['container_id'], item['file_path'])
+            files_to_scan.append(file_path_in_diff_directory)
             file_hashes.append(item['sha256'])
-            logger.info(f"Scanned file {file}.")
+        try:
+            scan_results = THUNDERSTORM.scan_multi(files_to_scan)
+            SCAN_RESULTS.append({'date': DATE, 'scan_results': [x for x in scan_results if len(x) > 0]})
+            logger.info(f"Scanned {len(files_to_scan)} files in batch.")
+            logger.info(f"Scan results not mapped to individual files when scanning in batch mode.")
         except Exception as e:
-            logger.error(f"Error scanning file {file}. Check if Thunderstorm is running properly. Error: {e}")
+            logger.error(f"Error scanning files in batch. Check if Thunderstorm is running properly. Error: {e}")
     if SAVE_FILE_HASHES:
         save_file_hashes(file_hashes)
 
@@ -214,8 +231,8 @@ def skip_big_files():
     global FILTERED_DIFF
     filtered_items = []
     for item in FILTERED_DIFF:
-        file = f"{DIFF_DIRECTORY}/{item['container_id']}{item['file_path'].replace('/', '_')}"
-        file_size = os.path.getsize(file)
+        file_path_in_diff_directory = get_file_path_in_diff_directory(item['container_id'], item['file_path'])
+        file_size = os.path.getsize(file_path_in_diff_directory)
         if file_size <= MAX_FILE_SIZE:
             filtered_items.append(item)
         else:
@@ -236,6 +253,10 @@ def save_file_hashes(file_hashes):
     else:
         logger.info("No new file hashes to save.")
 
+def get_file_path_in_diff_directory(container_id, file_path):
+    if not os.path.exists(DIFF_DIRECTORY):
+        os.makedirs(DIFF_DIRECTORY)
+    return os.path.join(DIFF_DIRECTORY, f"{container_id}{file_path.replace('/', '_')}")
 
 read_arguments()
 if not is_instance_running():
@@ -244,6 +265,10 @@ if not is_instance_running():
     skip_deleted_items_and_non_files()
     copy_files_from_container()
     skip_duplicates()
+    if ONLY_SCAN_NEW_FILES and os.path.exists(HASH_FILE):
+        skip_known_files()
+    if MAX_FILE_SIZE > 0:
+        skip_big_files()
     scan_files()
     if not os.path.exists(SCAN_RESULTS_DIRECTORY):
         os.makedirs(SCAN_RESULTS_DIRECTORY)
