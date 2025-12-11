@@ -89,7 +89,18 @@ def read_arguments():
         FILTER_OUT_FILE_TYPES = args.filter_out_file_types
     logger.info(f'Configuration - Thunderstorm Host: {THUNDERSTORM_HOST}, Port: {THUNDERSTORM_PORT}, Changed Files Directory: {GLOBAL_CHANGED_FILES_DIRECTORY}, Scan Results Directory: {SCAN_RESULTS_DIRECTORY}, Log File: {LOGFILE}, Save File Hashes: {SAVE_FILE_HASHES}, Only Scan New Files: {ONLY_SCAN_NEW_FILES}, Max File Size: {MAX_FILE_SIZE} bytes, Scan Files Separately: {SCAN_FILES_SEPARATELY}, Filter Out File Types: {FILTER_OUT_FILE_TYPES}')
 
-def is_instance_running(lockfile=LOCKFILE):
+def is_instance_running(lockfile=LOCKFILE) -> bool:
+    """ Checks if another instance of the script is running using a lock file.
+
+    Args:
+        lockfile (str): Path to the lock file.
+
+    Returns:
+        bool: True if another instance is running, False otherwise.
+
+    Raises:
+        SystemExit: If another instance is running, exits the script.
+    """
     fp = open(lockfile, 'w')
     try:
         fcntl.lockf(fp, fcntl.LOCK_EX | fcntl.LOCK_NB)
@@ -98,7 +109,15 @@ def is_instance_running(lockfile=LOCKFILE):
         logger.error('Another instance is running. Exiting.')
         sys.exit(1)
 
-def get_listing_of_running_containers():
+def get_listing_of_running_containers() -> list:
+    """ Creates a list of running Docker containers.
+
+    Returns:
+        list: List of running Docker containers.
+
+    Raises:
+        Exception: If unable to connect to Docker.
+    """
     try:
         result = subprocess.run(['docker', 'ps', '--format', '{{json .}}'],capture_output=True, text=True)
         list_of_containers = [json.loads(line) for line in result.stdout.splitlines()]
@@ -107,11 +126,22 @@ def get_listing_of_running_containers():
     logger.info(f'Found {len(list_of_containers)} running containers.')
     return list_of_containers
 
-def process_containers(running_containers):
+def process_containers(running_containers) -> None:
+    """ Processes each running Docker container to find changed files.
+
+    Args:
+        running_containers (list): List of running Docker containers.
+    """
     for container in running_containers:
         process_container(container=container)
 
-def process_container(container):
+def process_container(container) -> None:
+    """ Processes a single Docker container to find changed files.
+        Initializes list of changed files (DIFF) detected in the container. Each change is represented as a dictionary including container ID, change type, file path, and timestamp.
+
+    Args:
+        container (dict): A dictionary representing a Docker container.
+    """
     global DIFF
     logger.info(f'Processing container {container["ID"]}, image: {container["Image"]}.')
     result = subprocess.run(['docker', 'diff', container['ID']],capture_output=True,text=True)
@@ -125,7 +155,10 @@ def process_container(container):
         logger.info(f'Found file: container ID: {container["ID"]}, file path: {file_path}, change type: {change_type}')
         DIFF.append({'container_id': container['ID'], 'change_type': change_type, 'file_path': file_path, 'timestamp': DATE})
 
-def filter_out_deleted_items_and_non_files():
+def filter_out_deleted_items_and_non_files() -> None:
+    """ Filters out deleted items and non-file items from the DIFF list.
+        Initializes the ITEMS_TO_SCAN list with items that are either modified or added files.
+    """
     global DIFF
     global ITEMS_TO_SCAN
     for item in DIFF:
@@ -139,12 +172,22 @@ def filter_out_deleted_items_and_non_files():
         ITEMS_TO_SCAN.append(item)
     logger.info(f'Found {len(ITEMS_TO_SCAN)} changes of type "modified" or "added" across all containers.')
 
-def copy_files_from_container():
+def copy_files_from_container() -> None:
+    """ Copies each file from Docker containers to the local directory.
+    """
     logger.info('Copying files from containers to local directory.')
     for item in ITEMS_TO_SCAN:
         copy_file_from_container(item)
 
-def copy_file_from_container(item):
+def copy_file_from_container(item) -> None:
+    """ Copies a single file from a Docker container to the local directory.
+
+    Args:
+        item (dict): A dictionary representing a file change, including container ID, file path, change type, and timestamp.
+
+    Raises:
+        Exception: If unable to copy the file from the container.
+    """
     file = f'{item["container_id"]}:{item["file_path"]}'
     if not os.path.exists(GLOBAL_CHANGED_FILES_DIRECTORY):
         os.makedirs(GLOBAL_CHANGED_FILES_DIRECTORY)
@@ -167,7 +210,10 @@ def copy_file_from_container(item):
         except Exception as e2:
             logger.error(f'Failed to copy file {item["file_path"]} from container {item["container_id"]}. Error: {e}')
 
-def add_cached_files():
+def add_cached_files() -> None:
+    """ Adds cached changed files from previous scans (stored in CACHE_FILE) to the list of changed files to scan.
+        Updated list ITEMS_TO_SCAN (changed files) to scan after including cached changed files.
+    """
     global ITEMS_TO_SCAN
     if os.path.exists(CACHE_FILE):
         with open(CACHE_FILE, 'r') as f:
@@ -177,7 +223,10 @@ def add_cached_files():
     else:
         logger.info('No cache file found. Skipping adding cached files.')
 
-def filter_out_duplicates():
+def filter_out_duplicates() -> None:
+    """ Filters out duplicate files from the list of changed files to scan based on file content hash.
+        Updated list ITEMS_TO_SCAN (changed files) to scan after removing duplicates.
+    """
     global ITEMS_TO_SCAN
     unique_items = {}
     for item in ITEMS_TO_SCAN:
@@ -196,16 +245,22 @@ def filter_out_duplicates():
     logger.debug(f'Updated list of filtered files by removing duplicates: {ITEMS_TO_SCAN}')
     logger.info(f'Found {len(ITEMS_TO_SCAN)} unique files after removing duplicates.')
 
-def process_optional_filtering():
+def process_optional_filtering() -> None:
+    """ Processes optional filtering of files based on configuration settings such as scanning only new files, maximum file size, and specific file types to filter out.
+        Updated list ITEMS_TO_SCAN (changed files) to scan after applying optional filtering.
+    """
     global ITEMS_TO_SCAN
     if ONLY_SCAN_NEW_FILES and os.path.exists(HASH_FILE):
-        filter_out_known_files()
+        ITEMS_TO_SCAN = filter_out_known_files()
     if MAX_FILE_SIZE > 0:
-        filter_out_big_files()
+        ITEMS_TO_SCAN = filter_out_big_files()
     if len(FILTER_OUT_FILE_TYPES) > 0:
-        filter_out_files_with_specific_types()
+        ITEMS_TO_SCAN = filter_out_files_with_specific_types()
 
-def filter_out_known_files():
+def filter_out_known_files() -> None:
+    """ Filters out files that have already been scanned in previous runs of the container-collector based on saved file hashes.
+        Updated list ITEMS_TO_SCAN (changed files) to scan after removing files that have been scanned in previous runs (based on saved file hashes in HASH_FILE).
+    """
     global ITEMS_TO_SCAN
     with open(HASH_FILE, 'r') as f:
         saved_file_hashes = json.load(f)
@@ -215,7 +270,10 @@ def filter_out_known_files():
     ITEMS_TO_SCAN = [item for item in ITEMS_TO_SCAN if item['sha256'] not in already_scanned_hashes]
     logger.info(f'Found {len(ITEMS_TO_SCAN)} files to scan after filtering already scanned files.')
 
-def filter_out_big_files():
+def filter_out_big_files() -> None:
+    """ Filters out files that exceed the maximum file size limit.
+        Updated list ITEMS_TO_SCAN (changed files) to scan after removing files that exceed the maximum file size limit.
+    """
     global ITEMS_TO_SCAN
     filtered_items = []
     for item in ITEMS_TO_SCAN:
@@ -228,7 +286,10 @@ def filter_out_big_files():
     ITEMS_TO_SCAN = filtered_items
     logger.info(f'Found {len(ITEMS_TO_SCAN)} files to scan after filtering out files bigger than {MAX_FILE_SIZE} bytes.')
 
-def filter_out_files_with_specific_types():
+def filter_out_files_with_specific_types() -> None:
+    """ Filters out files based on specific file types defined in the configuration.
+        Updated list ITEMS_TO_SCAN (changed files) to scan after removing files of specific types.
+    """
     global ITEMS_TO_SCAN
     filtered_items = []
     for item in ITEMS_TO_SCAN:
@@ -251,6 +312,9 @@ def filter_out_files_with_specific_types():
     logger.info(f'Found {len(ITEMS_TO_SCAN)} files to scan after filtering out specific file types.')
 
 def scan_files():
+    """ Scans files using Thunderstorm API, either separately or in batch mode based on configuration.
+        Saves file hashes if configured to do so, and caches files that could not be scanned for later processing.
+    """
     global SCAN_RESULTS, ITEMS_TO_SCAN
     if SCAN_FILES_SEPARATELY:
         file_hashes, files_to_cache = scan_files_separately()
@@ -263,7 +327,15 @@ def scan_files():
             json.dump(files_to_cache, f, indent=4)
         logger.info(f'Saved {len(files_to_cache)} files to cache for later scanning in {CACHE_FILE}.')
 
-def scan_files_separately():
+def scan_files_separately() -> tuple[list, list]:
+    """ Scans files separately using Thunderstorm API.
+
+    Returns:
+        tuple: A tuple containing a list of scanned file hashes and a list of files to cache (files are not scanned due to errors) for later scanning.
+
+    Raises:
+        Exception: If unable to scan a file.
+    """
     global SCAN_RESULTS
     file_hashes = []
     files_to_cache = []
@@ -283,7 +355,15 @@ def scan_files_separately():
             files_to_cache.append(item)
     return file_hashes, files_to_cache
 
-def scan_files_in_batch():
+def scan_files_in_batch() -> tuple[list, list]:
+    """ Scans files in batch using Thunderstorm API.
+
+    Returns:
+        tuple: A tuple containing a list of scanned file hashes and a list of files to cache (files are not scanned due to errors) for later scanning.
+
+    Raises:
+        Exception: If unable to scan files in batch.
+    """
     global SCAN_RESULTS
     THUNDERSTORM = ThunderstormAPI(host=THUNDERSTORM_HOST, port=THUNDERSTORM_PORT)
     file_hashes = []
@@ -307,7 +387,17 @@ def scan_files_in_batch():
             files_to_cache.append(item)
     return file_hashes, files_to_cache
 
-def check_connection(host=THUNDERSTORM_HOST,port=THUNDERSTORM_PORT,timeout=2):
+def check_connection(host=THUNDERSTORM_HOST,port=THUNDERSTORM_PORT,timeout=2) -> bool:
+    """ Checks if a connection to the Thunderstorm instance can be established.
+
+    Args:
+        host (str): Thunderstorm host address.
+        port (int): Thunderstorm port number.
+        timeout (int): Connection timeout in seconds.
+
+    Returns:
+        bool: True if connection is successful, False otherwise.
+    """
     sock = socket.socket(socket.AF_INET,socket.SOCK_STREAM) 
     sock.settimeout(timeout)
     try:
@@ -318,7 +408,12 @@ def check_connection(host=THUNDERSTORM_HOST,port=THUNDERSTORM_PORT,timeout=2):
        sock.close()
        return True
 
-def save_file_hashes(file_hashes):
+def save_file_hashes(file_hashes) -> None:
+    """ Saves scanned file hashes to a JSON file.
+
+    Args:
+        file_hashes (list): List of scanned file hashes.
+    """
     saved_file_hashes = {}
     if os.path.exists(HASH_FILE):
         with open(HASH_FILE, 'r') as f:
@@ -331,12 +426,23 @@ def save_file_hashes(file_hashes):
     else:
         logger.info('No new file hashes to save.')
 
-def get_file_path_in_diff_directory(container_id, file_path):
+def get_file_path_in_diff_directory(container_id, file_path) -> str:
+    """ Generates the file path in the diff directory for a given container ID and file path.
+    
+    Args:
+        container_id (str): The ID of the container.
+        file_path (str): The original file path.
+
+    Returns:
+        str: The generated file path in the diff directory.
+    """
     if not os.path.exists(DIFF_DIRECTORY):
         os.makedirs(DIFF_DIRECTORY)
     return os.path.join(DIFF_DIRECTORY, f'{container_id}{file_path.replace("/", "_")}')
 
-def read_file_type_config():
+def read_file_type_config() -> None:
+    """ Reads the file type configuration from a file and updates the FILE_TYPES dictionary.
+    """
     global FILE_TYPES
     if os.path.exists(FILE_TYPE_CONFIG_FILE):
         with open(FILE_TYPE_CONFIG_FILE, 'r') as f:
@@ -369,7 +475,7 @@ if not is_instance_running():
     scan_files()
     if not os.path.exists(SCAN_RESULTS_DIRECTORY):
         os.makedirs(SCAN_RESULTS_DIRECTORY)
-    with open(os.path.join(SCAN_RESULTS_DIRECTORY, f'scan_diff_results_{DATE}.json'), 'w') as f:
+    with open(os.path.join(SCAN_RESULTS_DIRECTORY, f'scan_results_{DATE}.json'), 'w') as f:
         json.dump(SCAN_RESULTS, f, indent=4)
     logger.info('Scan results exported successfully.')
 else:
