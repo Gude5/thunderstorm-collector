@@ -51,6 +51,8 @@ handler.setLevel(logging.INFO)
 logger.addHandler(handler)
 
 def read_arguments():
+    """ Reads command-line arguments to override default configuration settings.
+    """
     global THUNDERSTORM_HOST, THUNDERSTORM_PORT,GLOBAL_CHANGED_FILES_DIRECTORY,SCAN_RESULTS_DIRECTORY,LOGFILE,SAVE_FILE_HASHES,ONLY_SCAN_NEW_FILES,MAX_FILE_SIZE,SCAN_FILES_SEPARATELY,FILTER_OUT_FILE_TYPES
     parser = argparse.ArgumentParser(description='Scan Docker container diffs with Thunderstorm.')
     parser.add_argument('-t', '--thunderstorm-host', type=str, default=THUNDERSTORM_HOST, help='Thunderstorm host address')
