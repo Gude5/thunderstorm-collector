@@ -120,6 +120,7 @@ def get_listing_of_running_containers() -> list:
     Raises:
         Exception: If unable to connect to Docker.
     """
+    list_of_containers = []
     try:
         result = subprocess.run(['docker', 'ps', '--format', '{{json .}}'],capture_output=True, text=True)
         list_of_containers = [json.loads(line) for line in result.stdout.splitlines()]
