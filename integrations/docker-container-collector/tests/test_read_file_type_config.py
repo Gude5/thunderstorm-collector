@@ -16,6 +16,7 @@ class TestReadFileTypeConfig(unittest.TestCase):
         """
     )
     def test_read_config_file_exists(self, mock_open_file, mock_exists, mock_logger):
+        """ Tests that the file type configuration is read and parsed correctly when the file exists."""
         docker_container_collector.FILE_TYPES = {
             "PNG": ["89504E47"],
             "PDF": ["25504446"]
@@ -43,6 +44,7 @@ class TestReadFileTypeConfig(unittest.TestCase):
     @patch("docker_container_collector.logger")
     @patch("docker_container_collector.os.path.exists", return_value=False)
     def test_read_config_file_missing(self, mock_exists, mock_logger):
+        """ Tests that the function handles a missing configuration file gracefully."""
         docker_container_collector.FILE_TYPES = {
             "PNG": ["89504E47"],
             "PDF": ["25504446"]

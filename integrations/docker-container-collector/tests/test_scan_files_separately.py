@@ -9,7 +9,7 @@ class TestScanFilesSeparately(unittest.TestCase):
     @patch("docker_container_collector.check_connection", return_value=True)
     @patch("docker_container_collector.ThunderstormAPI")
     def test_all_files_scanned_successfully(self, mock_thunderstorm_cls, mock_check_conn, mock_get_path, mock_logger):
-        # Setup
+        """ Tests that all files are scanned successfully when connection is available. """
         docker_container_collector.ITEMS_TO_SCAN = [
             {"container_id": "c1", "file_path": "/app/f1", "sha256": "hash1", "timestamp": "2025-12-11"},
             {"container_id": "c1", "file_path": "/app/f2", "sha256": "hash2", "timestamp": "2025-12-11"}
@@ -34,6 +34,7 @@ class TestScanFilesSeparately(unittest.TestCase):
     @patch("docker_container_collector.check_connection", return_value=True)
     @patch("docker_container_collector.ThunderstormAPI")
     def test_some_files_fail_during_scan(self, mock_thunderstorm_cls, mock_check_conn, mock_get_path, mock_logger):
+        """ Tests that some files failing during scan are handled correctly. """
         docker_container_collector.ITEMS_TO_SCAN = [
             {"container_id": "c1", "file_path": "/app/f1", "sha256": "hash1", "timestamp": "2025-12-11"},
             {"container_id": "c1", "file_path": "/app/f2", "sha256": "hash2", "timestamp": "2025-12-11"}
@@ -58,6 +59,7 @@ class TestScanFilesSeparately(unittest.TestCase):
     @patch("docker_container_collector.check_connection", return_value=False)
     @patch("docker_container_collector.ThunderstormAPI")
     def test_cannot_connect_to_thunderstorm(self, mock_thunderstorm_cls, mock_check_conn, mock_get_path, mock_logger):
+        """ Tests that inability to connect to Thunderstorm is handled correctly. """
         docker_container_collector.THUNDERSTORM_HOST = "localhost"
         docker_container_collector.THUNDERSTORM_PORT = 1234
         docker_container_collector.ITEMS_TO_SCAN = [

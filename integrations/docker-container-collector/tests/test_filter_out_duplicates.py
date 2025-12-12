@@ -9,6 +9,7 @@ class TestFilterOutDuplicates(unittest.TestCase):
     @patch("docker_container_collector.open", new_callable=mock_open, read_data=b"content1")
     @patch("docker_container_collector.logger")
     def test_no_duplicates(self, mock_logger, mock_open_fn, mock_get_path):
+        """ Tests that when there is only one file, it remains in ITEMS_TO_SCAN."""
         docker_container_collector.ITEMS_TO_SCAN = [
             {"container_id": "c1", "file_path": "/app/file1"}
         ]
@@ -25,6 +26,7 @@ class TestFilterOutDuplicates(unittest.TestCase):
     @patch("docker_container_collector.open", new_callable=mock_open)
     @patch("docker_container_collector.logger")
     def test_two_unique_files(self, mock_logger, mock_open_fn, mock_get_path):
+        """ Tests that when there are two unique files, both remain in ITEMS_TO_SCAN."""
         docker_container_collector.ITEMS_TO_SCAN = [
             {"container_id": "c1", "file_path": "/app/file1"},
             {"container_id": "c1", "file_path": "/app/file2"},
@@ -47,6 +49,7 @@ class TestFilterOutDuplicates(unittest.TestCase):
     @patch("docker_container_collector.open", new_callable=mock_open)
     @patch("docker_container_collector.logger")
     def test_duplicate_files_filtered_out(self, mock_logger, mock_open_fn, mock_get_path):
+        """ Tests that when there are duplicate files, only one remains in ITEMS_TO_SCAN."""
         docker_container_collector.ITEMS_TO_SCAN = [
             {"container_id": "c1", "file_path": "/app/file1"},
             {"container_id": "c1", "file_path": "/app/file2"},
@@ -68,6 +71,7 @@ class TestFilterOutDuplicates(unittest.TestCase):
     @patch("docker_container_collector.get_file_path_in_diff_directory")
     @patch("docker_container_collector.logger")
     def test_open_raises_exception(self, mock_logger, mock_get_path):
+        """ Tests that an exception during file open is handled gracefully."""
         docker_container_collector.ITEMS_TO_SCAN = [
             {"container_id": "c1", "file_path": "/app/file1"},
         ]

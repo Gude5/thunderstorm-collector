@@ -10,6 +10,7 @@ class TestCopyFileFromContainer(unittest.TestCase):
     @patch("docker_container_collector.subprocess.run")
     @patch("docker_container_collector.logger")
     def test_file_copied_successfully(self, mock_logger, mock_subprocess, mock_exists, mock_makedirs, mock_get_path):
+        """ Tests that a file is copied successfully from the container."""
         item = {'container_id': 'c1', 'file_path': '/app/file1', 'change_type': 'A', 'timestamp': '2025-12-11'}
         
         # subprocess.run returns success
@@ -25,6 +26,7 @@ class TestCopyFileFromContainer(unittest.TestCase):
     @patch("docker_container_collector.subprocess.run")
     @patch("docker_container_collector.logger")
     def test_directories_created_if_missing(self, mock_logger, mock_subprocess, mock_exists, mock_makedirs, mock_get_path):
+        """ Tests that necessary directories are created if they do not exist."""
         item = {'container_id': 'c1', 'file_path': '/app/file1', 'change_type': 'A', 'timestamp': '2025-12-11'}
         mock_subprocess.return_value = MagicMock(returncode=0)
 
@@ -38,6 +40,7 @@ class TestCopyFileFromContainer(unittest.TestCase):
     @patch("docker_container_collector.subprocess.run")
     @patch("docker_container_collector.logger")
     def test_copy_fails_returncode_nonzero(self, mock_logger, mock_subprocess, mock_exists, mock_get_path):
+        """ Tests that an error is logged if the copy command fails with non-zero return code."""
         item = {'container_id': 'c1', 'file_path': '/app/file1', 'change_type': 'A', 'timestamp': '2025-12-11'}
         mock_subprocess.return_value = MagicMock(returncode=1)  # cp fails
 
@@ -50,6 +53,7 @@ class TestCopyFileFromContainer(unittest.TestCase):
     @patch("docker_container_collector.subprocess.run")
     @patch("docker_container_collector.logger")
     def test_copy_raises_exception_container_not_running(self, mock_logger, mock_subprocess, mock_exists, mock_get_path):
+        """ Tests that an error is logged if the container is not running."""
         item = {'container_id': 'c1', 'file_path': '/app/file1', 'change_type': 'A', 'timestamp': '2025-12-11'}
         
         # First cp raises Exception
@@ -71,6 +75,7 @@ class TestCopyFileFromContainer(unittest.TestCase):
     @patch("docker_container_collector.subprocess.run")
     @patch("docker_container_collector.logger")
     def test_copy_raises_exception_container_running(self, mock_logger, mock_subprocess, mock_exists, mock_get_path):
+        """ Tests that an error is logged if the copy command raises an exception while container is running."""
         item = {'container_id': 'c1', 'file_path': '/app/file1', 'change_type': 'A', 'timestamp': '2025-12-11'}
         
         def side_effect_cp(args, **kwargs):

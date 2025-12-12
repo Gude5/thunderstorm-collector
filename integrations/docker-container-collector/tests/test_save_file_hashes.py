@@ -13,6 +13,7 @@ class TestSaveFileHashes(unittest.TestCase):
     def test_save_file_hashes_when_hash_file_exists(
         self, mock_exists, mock_open_file, mock_json_load, mock_json_dump, mock_logger
     ):
+        """ Tests that file hashes are saved correctly when the hash file exists. """
         # Existing JSON content
         mock_json_load.return_value = {"2024-01-01": ["oldhash"]}
 
@@ -41,7 +42,7 @@ class TestSaveFileHashes(unittest.TestCase):
     def test_save_file_hashes_when_hash_file_does_not_exist(
         self, mock_exists, mock_open_file, mock_json_dump, mock_logger
     ):
-
+        """ Tests that file hashes are saved correctly when the hash file does not exist. """
         save_file_hashes(["h1"])
 
         # Should NOT try to read file
@@ -61,7 +62,7 @@ class TestSaveFileHashes(unittest.TestCase):
     def test_save_file_hashes_empty_list(
         self, mock_json_load, mock_exists, mock_open_file, mock_json_dump, mock_logger
     ):
-
+        """ Tests that saving an empty list of file hashes is handled correctly. """
         save_file_hashes([])
 
         expected_dict = {DATE: []}

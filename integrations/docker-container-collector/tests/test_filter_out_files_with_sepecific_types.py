@@ -8,6 +8,7 @@ class TestFilterOutFilesWithSpecificTypes(unittest.TestCase):
     @patch("docker_container_collector.get_file_path_in_diff_directory")
     @patch("docker_container_collector.open", new_callable=mock_open, read_data=b"\x00\x11\x22\x33\x44")
     def test_no_file_types_match(self, mock_file, mock_get_path, mock_logger):
+        """ Tests that no files are filtered out when none match the specified types to filter."""
         docker_container_collector.ITEMS_TO_SCAN = [
             {"container_id": "c1", "file_path": "/a"},
             {"container_id": "c2", "file_path": "/b"},
@@ -27,6 +28,7 @@ class TestFilterOutFilesWithSpecificTypes(unittest.TestCase):
     @patch("docker_container_collector.logger")
     @patch("docker_container_collector.get_file_path_in_diff_directory")
     def test_single_file_filtered(self, mock_get_path, mock_logger):
+        """ Tests that a file matching the specified type is filtered out."""
         docker_container_collector.ITEMS_TO_SCAN = [
             {"container_id": "c1", "file_path": "/bin/sh"},
         ]
@@ -54,6 +56,7 @@ class TestFilterOutFilesWithSpecificTypes(unittest.TestCase):
     @patch("docker_container_collector.logger")
     @patch("docker_container_collector.get_file_path_in_diff_directory")
     def test_mixed_files(self, mock_get_path, mock_logger):
+        """ Tests that only files matching the specified types are filtered out."""
         docker_container_collector.ITEMS_TO_SCAN = [
             {"container_id": "c1", "file_path": "/keep1"},
             {"container_id": "c1", "file_path": "/drop1"},
@@ -95,6 +98,7 @@ class TestFilterOutFilesWithSpecificTypes(unittest.TestCase):
     @patch("docker_container_collector.get_file_path_in_diff_directory", return_value="/tmp/f")
     @patch("docker_container_collector.logger")
     def test_open_raises_exception(self, mock_logger, mock_get_path):
+        """ Tests that an exception during file open is handled gracefully."""
         docker_container_collector.ITEMS_TO_SCAN = [
             {"container_id": "c1", "file_path": "/crash"},
         ]

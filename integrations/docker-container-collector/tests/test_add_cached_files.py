@@ -8,6 +8,8 @@ class TestAddCachedFiles(unittest.TestCase):
     @patch("builtins.open", new_callable=mock_open)
     @patch("docker_container_collector.json.load")
     def test_cache_file_exists(self, mock_logger, mock_json_load, mock_open, mock_exists):
+        """ Tests that cached files are added to ITEMS_TO_SCAN when the cache file exists.
+        """
         docker_container_collector.ITEMS_TO_SCAN = []
         # Mock the JSON load to return a list of cached items
         mock_open.return_value = MagicMock()
@@ -26,6 +28,8 @@ class TestAddCachedFiles(unittest.TestCase):
     @patch("docker_container_collector.os.path.exists", return_value=False)
     @patch("docker_container_collector.logger")
     def test_cache_file_missing(self, mock_logger, mock_exists):
+        """ Tests that no files are added when the cache file does not exist.
+        """
         docker_container_collector.ITEMS_TO_SCAN = []
 
         docker_container_collector.add_cached_files()

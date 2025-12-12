@@ -12,6 +12,7 @@ class TestScanFilesInBatch(unittest.TestCase):
     def test_batch_scan_success(
         self, mock_thunderstorm_cls, mock_get_path, mock_check_conn, mock_logger
     ):
+        """ Tests that scanning files in batch mode succeeds when connection is available. """
         docker_container_collector.ITEMS_TO_SCAN = [
             {"container_id": "c1", "file_path": "/app/f1", "sha256": "h1"},
             {"container_id": "c1", "file_path": "/app/f2", "sha256": "h2"},
@@ -49,6 +50,7 @@ class TestScanFilesInBatch(unittest.TestCase):
     def test_batch_scan_connection_fails(
         self, mock_thunderstorm_cls, mock_get_path, mock_check_conn, mock_logger
     ):
+        """ Tests that scanning files in batch mode handles connection failure correctly. """
         docker_container_collector.ITEMS_TO_SCAN = [
             {"container_id": "c1", "file_path": "/app/f1", "sha256": "h1"},
             {"container_id": "c1", "file_path": "/app/f2", "sha256": "h2"},
@@ -79,6 +81,7 @@ class TestScanFilesInBatch(unittest.TestCase):
     def test_batch_scan_raises_exception(
         self, mock_thunderstorm_cls, mock_get_path, mock_check_conn, mock_logger
     ):
+        """ Tests that scanning files in batch mode handles exceptions correctly. """
         docker_container_collector.ITEMS_TO_SCAN = [
             {"container_id": "c1", "file_path": "/app/f1", "sha256": "h1"},
             {"container_id": "c1", "file_path": "/app/f2", "sha256": "h2"},

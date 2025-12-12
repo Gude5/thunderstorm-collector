@@ -11,6 +11,7 @@ class TestProcessContainer(unittest.TestCase):
     @patch("docker_container_collector.logger")
     @patch("docker_container_collector.subprocess.run")
     def test_container_with_changes(self, mock_run, mock_logger):
+        """ Tests that a container with file changes is processed correctly."""
         container = {"ID": "abc123", "Image": "alpine"}
         mock_run.return_value = MagicMock(stdout="A /app/file1\nC /app/file2")
 
@@ -32,6 +33,7 @@ class TestProcessContainer(unittest.TestCase):
     @patch("docker_container_collector.logger")
     @patch("docker_container_collector.subprocess.run")
     def test_container_no_changes(self, mock_run, mock_logger):
+        """ Tests that a container with no file changes is handled correctly."""
         container = {"ID": "abc123", "Image": "alpine"}
         mock_run.return_value = MagicMock(stdout="")
 
@@ -44,6 +46,7 @@ class TestProcessContainer(unittest.TestCase):
     @patch("docker_container_collector.logger")
     @patch("docker_container_collector.subprocess.run", side_effect=Exception("Docker diff failed"))
     def test_subprocess_exception(self, mock_run, mock_logger):
+        """ Tests that an exception during subprocess.run is handled gracefully."""
         container = {"ID": "abc123", "Image": "alpine"}
 
         with self.assertRaises(Exception) as context:

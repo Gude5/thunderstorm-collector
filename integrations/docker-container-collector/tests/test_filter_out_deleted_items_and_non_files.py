@@ -7,6 +7,8 @@ class TestFilterOutDeletedItemsAndNonFiles(unittest.TestCase):
     @patch("docker_container_collector.subprocess.run")
     @patch("docker_container_collector.logger")
     def test_all_items_are_files_and_modified(self, mock_logger, mock_run):
+        """ Tests that all modified and added items that are files are retained in ITEMS_TO_SCAN.
+        """
         # Setup DIFF with added and modified items
         docker_container_collector.DIFF = [
             {'container_id': 'c1', 'change_type': 'A', 'file_path': '/app/file1', 'timestamp': '2025-12-11'},
@@ -29,6 +31,8 @@ class TestFilterOutDeletedItemsAndNonFiles(unittest.TestCase):
     @patch("docker_container_collector.subprocess.run")
     @patch("docker_container_collector.logger")
     def test_deleted_items_filtered_out(self, mock_logger, mock_run):
+        """ Tests that deleted items are filtered out from ITEMS_TO_SCAN.
+        """
         # Setup DIFF with one deleted item and one modified
         docker_container_collector.DIFF = [
             {'container_id': 'c1', 'change_type': 'D', 'file_path': '/app/file_deleted', 'timestamp': '2025-12-11'},
@@ -50,6 +54,8 @@ class TestFilterOutDeletedItemsAndNonFiles(unittest.TestCase):
     @patch("docker_container_collector.subprocess.run")
     @patch("docker_container_collector.logger")
     def test_non_file_items_filtered_out(self, mock_logger, mock_run):
+        """ Tests that items that are not files are filtered out from ITEMS_TO_SCAN.
+        """
         # Setup DIFF with one added item that is not a file
         docker_container_collector.DIFF = [
             {'container_id': 'c1', 'change_type': 'A', 'file_path': '/app/not_a_file', 'timestamp': '2025-12-11'}
@@ -70,6 +76,8 @@ class TestFilterOutDeletedItemsAndNonFiles(unittest.TestCase):
     @patch("docker_container_collector.subprocess.run", side_effect=Exception("Docker exec failed"))
     @patch("docker_container_collector.logger")
     def test_subprocess_exception(self, mock_logger, mock_run):
+        """ Tests that an exception during subprocess.run is handled gracefully.
+        """
         # Setup DIFF with one added item
         docker_container_collector.DIFF = [
             {'container_id': 'c1', 'change_type': 'A', 'file_path': '/app/file1', 'timestamp': '2025-12-11'}

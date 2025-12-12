@@ -9,6 +9,7 @@ class TestFilterOutBigFiles(unittest.TestCase):
     @patch("docker_container_collector.os.path.getsize")
     @patch("docker_container_collector.get_file_path_in_diff_directory")
     def test_all_files_small(self, mock_get_path, mock_getsize, mock_logger):
+        """ Tests that no files are filtered out when all files are below the size limit."""
         docker_container_collector.ITEMS_TO_SCAN = [
             {"container_id": "c1", "file_path": "/app/a"},
             {"container_id": "c2", "file_path": "/app/b"},
@@ -30,6 +31,7 @@ class TestFilterOutBigFiles(unittest.TestCase):
     @patch("docker_container_collector.os.path.getsize")
     @patch("docker_container_collector.get_file_path_in_diff_directory")
     def test_one_file_too_large(self, mock_get_path, mock_getsize, mock_logger):
+        """ Tests that a file larger than the size limit is filtered out."""
         docker_container_collector.ITEMS_TO_SCAN = [
             {"container_id": "c1", "file_path": "/app/a"},
             {"container_id": "c1", "file_path": "/app/b"},
@@ -53,6 +55,7 @@ class TestFilterOutBigFiles(unittest.TestCase):
     @patch("docker_container_collector.os.path.getsize")
     @patch("docker_container_collector.get_file_path_in_diff_directory")
     def test_mixed_sizes(self, mock_get_path, mock_getsize, mock_logger):
+        """ Tests that only files larger than the size limit are filtered out."""
         docker_container_collector.ITEMS_TO_SCAN = [
             {"container_id": "c1", "file_path": "/app/small"},
             {"container_id": "c1", "file_path": "/app/large1"},
@@ -88,6 +91,7 @@ class TestFilterOutBigFiles(unittest.TestCase):
     @patch("docker_container_collector.get_file_path_in_diff_directory", return_value="/tmp/f")
     @patch("docker_container_collector.logger")
     def test_getsize_raises_exception(self, mock_logger, mock_get_path):
+        """ Tests that an exception during os.path.getsize is handled gracefully."""
         docker_container_collector.ITEMS_TO_SCAN = [{"container_id": "c1", "file_path": "/app/crash"}]
         docker_container_collector.MAX_FILE_SIZE = 1024 # 1 KB
 
