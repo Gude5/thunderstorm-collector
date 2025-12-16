@@ -1,3 +1,4 @@
+import os
 import json
 import logging
 import subprocess
@@ -17,6 +18,9 @@ def copy_file_from_container(container_id: str, source_path: Path, destination_p
     Returns:
         None
     """
+    directory_name = os.path.dirname(destination_path)
+    if not os.path.exists(directory_name):
+        os.makedirs(directory_name)
     logger.info(f"Copying file {source_path} from container {container_id} to {destination_path}.")
     try:
         copy = subprocess.run(["docker", "cp", f"{container_id}:{source_path}", destination_path], capture_output=True)
