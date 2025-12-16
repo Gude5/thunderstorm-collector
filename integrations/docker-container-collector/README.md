@@ -9,6 +9,11 @@ The Docker Container Collector uses the Thunderstorm Collector to scan Docker co
 * Free software: MIT License
 * Documentation: https://docker-container-collector.readthedocs.io.
 
+## Run Script 
+
+To be edited later:
+Run `PYTHONPATH=src python3 -m docker_container_collector`.
+
 ## Features
 
 * TODO
