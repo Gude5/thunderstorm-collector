@@ -155,7 +155,7 @@ def get_changed_objects_from_container(container: DockerContainer, timestamp: st
     changed_objects = ChangedObjectsList()
     logger.info(f"Processing container {container.id}, image: {container.image}.")
     # docker diff has no --format option, so we need to parse its output manually
-    result = subprocess.run(['docker', 'diff', container.id, ],capture_output=True,text=True)
+    result = subprocess.run(['docker', 'diff', container.id],capture_output=True,text=True)
     changes = result.stdout.strip().splitlines()
     if not changes:
         logger.info(f"No changes detected in container {container.id}.")

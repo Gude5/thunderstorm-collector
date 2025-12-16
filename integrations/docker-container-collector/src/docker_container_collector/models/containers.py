@@ -41,7 +41,15 @@ def get_list_of_running_containers() -> DockerContainersList:
     list_of_running_containers = DockerContainersList()
     try:
         result = subprocess.run(["docker", "ps", "--format", "{{json .}}"], capture_output=True, text=True)
-        list_of_running_containers.add_multi([json.loads(line) for line in result.stdout.splitlines()])
+        for line in result.stdout.splitlines():
+            container_info = json.loads(line)
+            docker_container = DockerContainer(
+                id=container_info.get("ID"),
+                name=container_info.get("Names"),
+                image=container_info.get("Image"),
+                status=container_info.get("Status")
+            )
+            list_of_running_containers.add(docker_container)
     except Exception as e:
         raise Exception(f"Failed to retrieve list of running Docker containers. Error: {e}") from e
     logger.info(f"Found {list_of_running_containers.get_length()} running containers.")
