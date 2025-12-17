@@ -11,11 +11,13 @@ The Docker Container Collector uses the Thunderstorm Collector to scan Docker co
 
 ## Run Script 
 
-You can start the script by run `docker_container_collector` in the root directory of the subproject.
+Run `pip3 install -e .` before running the script the first time on your system.
+Then you can start the script by run `docker_container_collector` in the root directory of the subproject.
 
 ## Tests
 
-Use `pytest` to test the functions of the script.
+Run `pip3 install -e .[test]` before testing the script the first time on your system.
+Then use `pytest` to test the functions of the script.
 
 ## Features
 
