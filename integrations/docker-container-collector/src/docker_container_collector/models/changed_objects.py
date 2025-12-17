@@ -25,9 +25,6 @@ class ChangedObject:
     hash: Optional[str] = None  # noqa: UP045
     file_size: Optional[int] = None  # noqa: UP045
 
-    def set_file_path_after_copy(self, directory: Path):
-        self.file_path_after_copy = directory / str(uuid.uuid4())
-
     def to_dict(self) -> dict:
         return {
             "container_id": self.container_id,
@@ -39,6 +36,9 @@ class ChangedObject:
             "hash": self.hash,
             "file_size": self.file_size
         }
+
+    def set_file_path_after_copy(self, directory: Path):
+        self.file_path_after_copy = directory / str(uuid.uuid4())
 
     def set_hash(self):
         with open(str(self.file_path_after_copy), 'rb') as f:

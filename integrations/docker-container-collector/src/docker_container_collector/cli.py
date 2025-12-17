@@ -27,24 +27,21 @@ def setup_logging(log_dir: Path, log_file: Path, log_level: str) -> None:
         "%(asctime)s [%(levelname)s] %(name)s: %(message)s"
     )
 
-    # Root-Logger holen
     root_logger = logging.getLogger()
     root_logger.setLevel(level)
 
-    # Alte Handler entfernen (wichtig bei Typer!)
     root_logger.handlers.clear()
 
-    # 🖥 Console
     console_handler = logging.StreamHandler()
     console_handler.setLevel(level)
     console_handler.setFormatter(formatter)
     root_logger.addHandler(console_handler)
 
-    # 📄 File
     file_handler = logging.FileHandler(log_dir / log_file)
     file_handler.setLevel(level)
     file_handler.setFormatter(formatter)
     root_logger.addHandler(file_handler)
+
 def check_if_instance_is_running(lockfile="/tmp/docker_container_collector.lock") -> bool:
     """ Checks if another instance of the script is running using a lock file.
 
@@ -84,7 +81,7 @@ def main(
         file_okay=False,
         dir_okay=True)] = Path("scan_results"),
     skip_known_hashes: Annotated[bool, typer.Option(
-        "--skip-known-hashes","-s",
+        "--skip-known-hashes","-k",
         help="Whether to skip scanning files with known hashes.")] = False,
     max_file_size: Annotated[int, typer.Option(
         "--max-file-size", "-m",
