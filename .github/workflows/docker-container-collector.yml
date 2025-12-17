@@ -6,14 +6,8 @@ name: Test Python application
 on:
   push:
     branches: [ "main", "master" ]
-    paths:
-      - "integrations/docker-container-collector/**"
-      - ".github/workflows/docker-container-collector.yml"
   pull_request:
     branches: [ "main", "master" ]
-    paths:
-      - "integrations/docker-container-collector/**"
-      - ".github/workflows/docker-container-collector.yml"
 
 permissions:
   contents: read
