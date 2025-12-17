@@ -1,0 +1,61 @@
+[project]
+name = "docker-container-collector"
+version = "0.1.0"
+description = "The Docker Container Collector uses the Thunderstorm Collector to scan Docker containers."
+readme = "README.md"
+authors = [
+  {name = "Tim Rauch", email = "tr-2000@gmx.de"}
+]
+maintainers = [
+  {name = "Tim Rauch", email = "tr-2000@gmx.de"}
+]
+classifiers = [
+    # TODO
+]
+license = {text = "MIT"}
+dependencies = [
+  "typer"
+]
+requires-python = ">= 3.10"
+
+[project.optional-dependencies]
+test = [
+    "coverage",  # testing
+    "pytest",  # testing
+    "ruff",  # linting
+    "ty", # checking types
+    "ipdb", # debugging
+]
+
+[project.urls]
+bugs = "https://github.com/Gude5/docker_container_collector/issues"
+changelog = "https://github.com/Gude5/docker_container_collector/blob/master/changelog.md"
+homepage = "https://github.com/Gude5/docker_container_collector"
+
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project.scripts]
+docker_container_collector = "docker_container_collector.cli:app"
+
+[tool.ty]
+# All rules are enabled as "error" by default; no need to specify unless overriding.
+# Example override: relax a rule for the entire project (uncomment if needed).
+# rules.TY015 = "warn"  # For invalid-argument-type, warn instead of error.
+
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # Pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "UP",  # pyupgrade
+]
+
+[tool.uv]
+package = true
