@@ -143,7 +143,7 @@ def save_scan_results(scan_results, directory: Path, timestamp) -> None:
             f"{directory / f'scan_results_{timestamp}.json'}. Error: {e}"
         ) from e
 
-def delete_file(file_path: Optional[Path]) -> None:
+def delete_file(file_path: Optional[Path]) -> None:  # noqa: UP045
     """Deletes the specified file.
 
     Args:
