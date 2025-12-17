@@ -19,16 +19,32 @@ console = Console()
 logger = logging.getLogger(__name__)
 
 def setup_logging(log_dir: Path, log_file: Path, log_level: str) -> None:
-    # logging configuration
-    logging.basicConfig(level=getattr(logging, log_level.upper()), format='%(asctime)s [%(levelname)s] %(message)s')
-    logger = logging.getLogger(__name__)
-    # log file handler
-    if not os.path.exists(log_dir):
-        os.makedirs(log_dir)
-    handler = logging.FileHandler(log_dir / log_file)
-    handler.setLevel(logging.INFO)
-    logger.addHandler(handler)
+    level = getattr(logging, log_level.upper(), logging.INFO)
 
+    log_dir.mkdir(parents=True, exist_ok=True)
+
+    formatter = logging.Formatter(
+        "%(asctime)s [%(levelname)s] %(name)s: %(message)s"
+    )
+
+    # Root-Logger holen
+    root_logger = logging.getLogger()
+    root_logger.setLevel(level)
+
+    # Alte Handler entfernen (wichtig bei Typer!)
+    root_logger.handlers.clear()
+
+    # 🖥 Console
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(level)
+    console_handler.setFormatter(formatter)
+    root_logger.addHandler(console_handler)
+
+    # 📄 File
+    file_handler = logging.FileHandler(log_dir / log_file)
+    file_handler.setLevel(level)
+    file_handler.setFormatter(formatter)
+    root_logger.addHandler(file_handler)
 def check_if_instance_is_running(lockfile="/tmp/docker_container_collector.lock") -> bool:
     """ Checks if another instance of the script is running using a lock file.
 
@@ -77,6 +93,9 @@ def main(
         "--file-types-of-no-interest", "-f",
         help="File types to exclude from processing. Use flag multiple times for multiple types.",
         case_sensitive=False,)] = [],  # noqa: B006
+    delete_files_after_scan: Annotated[bool, typer.Option(
+        "--delete-files-after-scan", "-d",
+        help="Whether to delete copied files without matches after scanning.")] = True,
     log_level: Annotated[str, typer.Option(
         "--log-level",
         help="Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL).")] = "INFO",
@@ -105,7 +124,8 @@ def main(
             file_types_of_no_interest=set(file_types_of_no_interest),
             host="localhost",
             port=8080,
-            scan_results_directory=Path(f"{scan_results_directory}/{timestamp}")
+            scan_results_directory=Path(f"{scan_results_directory}/{timestamp}"),
+            delete_files_after_scan=delete_files_after_scan
         )
     except Exception as e:
         logger.error(f"An error occurred while running the Docker Container Collector service. Error: {e}")
