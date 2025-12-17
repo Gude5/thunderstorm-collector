@@ -38,7 +38,7 @@ def test_copy_file_from_container_failure_container_stopped(tmp_path):
          patch("docker_container_collector.utils.filesystem.os.makedirs"), \
          patch("docker_container_collector.utils.filesystem.subprocess.run", side_effect=[mock_run_failure, \
                                                                                            mock_run_inspect]):
-        with pytest.raises(RuntimeError):
+        with pytest.raises(Exception, match=f"Failed to copy file {src} from container {container_id}."):
             filesystem.copy_file_from_container(container_id, src, dst)
 
 def test_load_file_types(tmp_path):
