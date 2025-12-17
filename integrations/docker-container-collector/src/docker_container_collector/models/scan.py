@@ -16,7 +16,7 @@ class ScanResults:
     hash: str
     timestamp_object: str
     timestamp_scan: str
-    matches: dict
+    scan_result: dict
 
 class ScanResultsList:
     def __init__(self):
@@ -33,12 +33,19 @@ def scan_changed_objects(changed_objects: ChangedObjectsList,
                          port: int,
                          known_hashes_file: Path,
                          cache_file: Path,
-                         timestamp_scan: str) -> ScanResultsList:
+                         timestamp_scan: str,
+                         delete_files_after_scan: bool) -> ScanResultsList:
     """ Scans each changed object using THOR Thunderstorm.
 
     Args:
         changed_objects (ChangedObjectsList): List of changed objects.
         scanner_command (list[str]): Command to run the external scanner.
+        host (str): Host of the Thunderstorm instance.
+        port (int): Port of the Thunderstorm instance.
+        known_hashes_file (Path): Path to the known file hashes file.
+        cache_file (Path): Path to the cache file.
+        timestamp_scan (str): Timestamp of the scan.
+        delete_files_after_scan (bool): Whether to delete copied files without matches after scanning.
 
     Returns:
         ScanResultsList: List of scan results.
@@ -53,15 +60,17 @@ def scan_changed_objects(changed_objects: ChangedObjectsList,
             if not connection.check_connection(host,port):
                 raise ConnectionError(f"Cannot connect to Thunderstorm instance. Check if it is running properly. "
                                       f"Host: {host}, Port: {port}")
-            matches = thunderstorm.scan(str(obj.file_path_after_copy))
+            scan_result = thunderstorm.scan(str(obj.file_path_after_copy))
             if obj.hash is None:
                 raise ValueError(f'File hash is None for file {obj.file_path_after_copy}.')
             scan_results = ScanResults(hash=obj.hash,
                                        timestamp_object=obj.timestamp,
                                        timestamp_scan=timestamp_scan,
-                                       matches=matches)
+                                       scan_result=scan_result)
             list_of_scan_results.add(scan_results)
             new_known_file_hashes.append(obj.hash)
+            if delete_files_after_scan and len(scan_result) == 0:
+                filesystem.delete_file(obj.file_path_after_copy)
             logger.info(f"Scanned file {obj.file_path_after_copy}.")
         except Exception as e:
             changed_objects_to_cache.add(obj)

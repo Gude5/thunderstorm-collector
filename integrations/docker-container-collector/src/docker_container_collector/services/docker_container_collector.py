@@ -16,7 +16,8 @@ def run_docker_container_collector(timestamp: str,
                                    file_types_of_no_interest: set,
                                    host: str,
                                    port: int,
-                                   scan_results_directory: Path
+                                   scan_results_directory: Path,
+                                   delete_files_after_scan: bool
                                    ) -> None:
     """Runs the Docker Container Collector service.
 
@@ -32,6 +33,7 @@ def run_docker_container_collector(timestamp: str,
         host (str): Host of the external scanner.
         port (int): Port of the external scanner.
         scan_results_directory (Path): Directory to store scan results.
+        delete_files_after_scan (bool): Whether to delete copied files without matches after scanning.
     Returns:
         None
     """
@@ -79,7 +81,8 @@ def run_docker_container_collector(timestamp: str,
                                                 port=port,
                                                 known_hashes_file=known_hashes_file_path,
                                                 cache_file=cache_file_path,
-                                                timestamp_scan=timestamp)
+                                                timestamp_scan=timestamp,
+                                                delete_files_after_scan=delete_files_after_scan)
     except Exception as e:
         raise Exception(f"Failed to scan changed objects. Error: {e}") from e
     try:

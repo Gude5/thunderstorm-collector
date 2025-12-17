@@ -1,8 +1,9 @@
-import os
 import json
 import logging
+import os
 import subprocess
 from pathlib import Path
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -90,8 +91,11 @@ def save_new_known_file_hashes(file_path: Path, new_hashes: list[str], timestamp
     """
     logger.info(f"Saving new known file hashes to {file_path}.")
     try:
-        with open(file_path, 'a') as f:
-            file_hashes = json.load(f)
+        if file_path.exists():
+            with open(file_path) as f:
+                file_hashes = json.load(f)
+        else:
+            file_hashes = dict()
         file_hashes[timestamp] = new_hashes
         with open(file_path, 'w') as f:
             json.dump(file_hashes, f, indent=4)
@@ -138,3 +142,22 @@ def save_scan_results(scan_results, directory: Path, timestamp) -> None:
             "Failed to save scan results to "
             f"{directory / f'scan_results_{timestamp}.json'}. Error: {e}"
         ) from e
+
+def delete_file(file_path: Optional[Path]) -> None:
+    """Deletes the specified file.
+
+    Args:
+        file_path (Path | None): Path to the file to be deleted.
+    """
+    logger.info(f"Deleting file {file_path}.")
+    if file_path is None:
+        logger.warning("File path is None. Cannot delete.")
+        return
+    try:
+        if file_path.exists():
+            file_path.unlink()
+            logger.info(f"Deleted file {file_path}.")
+        else:
+            logger.warning(f"File {file_path} does not exist. Cannot delete.")
+    except Exception as e:
+        raise Exception(f"Failed to delete file {file_path}. Error: {e}") from e
